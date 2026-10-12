@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evo-World — A Lightweight VLA with Future Motion Prediction via Optical-Flow Supervision</title>
+<meta name="description" content="Evo-World is a lightweight 0.87B vision-language-action model that augments policy learning with future motion prediction through optical-flow supervision.">
+
+<!-- Open Graph (social preview) -->
+<meta property="og:title" content="Evo-World">
+<meta property="og:description" content="A lightweight VLA that anticipates future motion in latent space, supervised by optical flow.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/teaser.png">
+
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- =========================== NAV =========================== -->
+<nav class="nav">
+  <div class="wrap">
+    <span class="nav__brand">Evo-World</span>
+    <div class="nav__links">
+      <a href="#abstract">Abstract</a>
+      <a href="#method">Method</a>
+      <a href="#results">Results</a>
+      <a href="#realworld">Real-world</a>
+      <a href="#bibtex">BibTeX</a>
+    </div>
+  </div>
+</nav>
+
+<!-- =========================== HERO =========================== -->
+<header class="hero">
+  <div class="wrap">
+    <p class="hero__kicker">Vision-Language-Action &middot; Future-Motion Prediction</p>
+    <h1 class="hero__title">Evo-World</h1>
+    <p class="hero__sub">
+      A lightweight vision-language-action model that augments policy learning with
+      <strong>future motion prediction through optical-flow supervision</strong> &mdash;
+      a task-relevant predictive signal focused on motion rather than appearance.
+    </p>
+
+    <p class="authors">
+      Zile Zhong<sup>1,&#9733;</sup>,
+      Yuxin Du<sup>1,&#9733;</sup>,
+      Tao Lin<sup>1,&#9733;</sup>,
+      Haoxiao Wang<sup>2</sup>,
+      Wei Dai<sup>3</sup>,
+      Binhua Zuo<sup>4</sup>,
+      Bo Zhao<sup>1,&dagger;</sup>
+    </p>
+    <p class="affil">
+      <sup>1</sup> School of AI, Shanghai Jiao Tong University &nbsp;&middot;&nbsp;
+      <sup>2</sup> Zhejiang University &nbsp;&middot;&nbsp;
+      <sup>3</sup> UESTC &nbsp;&middot;&nbsp;
+      <sup>4</sup> QuicRobot
+      <br>
+      <sup>&#9733;</sup> Equal contribution &nbsp;&middot;&nbsp; <sup>&dagger;</sup> Corresponding author
+      &nbsp;&middot;&nbsp;
+      <a href="mailto:zilezhong2005@gmail.com">zilezhong2005@gmail.com</a> &middot;
+      <a href="mailto:bo.zhao@sjtu.edu.cn">bo.zhao@sjtu.edu.cn</a>
+    </p>
+
+    <div class="btns">
+      <a class="btn" href="https://arxiv.org/abs/2610.12936" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/></svg>
+        Paper
+      </a>
+      <a class="btn" href="https://github.com/MINT-SJTU/Evo-World" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.86 10.92c.57.1.78-.25.78-.55v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.66.79.55A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5Z"/></svg>
+        Code
+      </a>
+      <a class="btn btn--ghost" href="https://huggingface.co/MINT-SJTU/Evo-World-Metaworld" target="_blank" rel="noopener">
+        🤗 Meta-World ckpt
+      </a>
+      <a class="btn btn--ghost" href="https://huggingface.co/MINT-SJTU/Evo-World-Robotwin" target="_blank" rel="noopener">
+        🤗 RoboTwin ckpt
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- =========================== TEASER =========================== -->
+<section id="teaser" style="padding-top:28px;">
+  <div class="wrap">
+    <figure class="media-frame" data-asset="assets/teaser.png" style="--ph-h:420px;">
+      <img src="assets/teaser.png" alt="Prediction targets for a VLA policy: action-only, future appearance, and future motion (ours)">
+      <figcaption>
+        <strong>Prediction targets for a VLA policy.</strong> (a) an action-only policy; (b) future-appearance
+        prediction; (c) future-<em>motion</em> prediction with optical-flow supervision (ours). Motion supervision
+        correlates far more strongly with the action than appearance reconstruction does.
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- =========================== ABSTRACT =========================== -->
+<section id="abstract">
+  <div class="wrap">
+    <p class="section__kicker">Abstract</p>
+    <h2 class="section__title">Acting by anticipating motion</h2>
+    <div class="prose">
+      <p>
+        Vision-language-action (VLA) models provide a unified framework for visual understanding,
+        language grounding, and robot control, yet anticipating how the scene will evolve beyond the
+        current observation can provide additional information for control. Action supervision alone
+        does not explicitly encourage such anticipation, while future-image prediction entangles
+        task-relevant motion with largely static appearance.
+      </p>
+      <p>
+        We introduce <strong>Evo-World</strong>, a lightweight VLA model that augments policy learning
+        with future motion prediction through <strong>optical-flow supervision</strong>, providing a
+        task-relevant predictive signal focused on motion rather than appearance. We design the training
+        procedure to preserve these predictive representations during policy learning &mdash; regulating
+        representation diversity while decoupling representation learning from action optimization.
+      </p>
+      <p>
+        Across simulation benchmarks, Evo-World achieves a tier-averaged success rate of <strong>91.1%</strong>
+        on Meta-World MT50, a 13.0% relative improvement over the non-predictive baseline. On real-world
+        AgileX robots it outperforms the evaluated baselines across single-arm and bimanual tasks while
+        using only <strong>0.87B</strong> parameters, with lower GPU memory and higher inference efficiency.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- =========================== METHOD =========================== -->
+<section id="method">
+  <div class="wrap">
+    <p class="section__kicker">Method</p>
+    <h2 class="section__title">A predictive branch inside a compact VLA</h2>
+
+    <figure class="media-frame" data-asset="assets/method.png" style="--ph-h:360px;">
+      <img src="assets/method.png" alt="Evo-World architecture: motion representation module, VL backbone, and motion-conditioned action generation">
+      <figcaption>
+        <strong>Evo-World architecture.</strong> (a) a Motion Representation Module predicts latent motion
+        from DINOv2 image features and CLIP instruction features (the dashed box encodes an optical-flow
+        rendering as a <em>training-only</em> target); (b) an InternVL3-1B backbone provides vision-language
+        context; (c) current + predicted representations are detached and projected into FiLM scale/shift that
+        modulate the backbone features feeding a flow-matching action expert.
+      </figcaption>
+    </figure>
+
+    <div class="cards">
+      <div class="card">
+        <h3><span class="dot" style="background:#2a78d6"></span>Motion Representation Module</h3>
+        <p>DINOv2 (image) + CLIP (text) encoders feed an MLP that predicts a latent motion representation
+           <em>z</em><sub>pred</sub>. The target is a DINOv2 encoding of a RAFT optical-flow rendering
+           (current → frame 15 steps ahead), used only during training.</p>
+      </div>
+      <div class="card">
+        <h3><span class="dot" style="background:#4a3aa7"></span>Vision-Language backbone</h3>
+        <p>InternViT encodes the camera views into visual tokens; the InternVL3-1B LLM fuses them with the
+           instruction into <em>H</em><sub>VL</sub> &mdash; the visual and linguistic context for action generation.</p>
+      </div>
+      <div class="card">
+        <h3><span class="dot" style="background:#1baf7a"></span>Motion-conditioned action</h3>
+        <p>FiLM derives bounded, zero-initialized scale/shift from the current and predicted representations
+           (stop-gradient) and modulates the tokens; a flow-matching action expert emits the action chunk.</p>
+      </div>
+      <div class="card">
+        <h3><span class="dot" style="background:#eb6834"></span>Training objectives</h3>
+        <p>A world loss (prediction + SIGReg regularization against representation collapse) plus a
+           flow-matching action loss, combined in a single joint objective. Gradient separation keeps the
+           motion branch trained by its own signal.</p>
+      </div>
+    </div>
+
+    <figure class="media-frame" data-asset="assets/optical_flow.png" style="--ph-h:240px; margin-top:28px;">
+      <img src="assets/optical_flow.png" alt="Optical-flow renderings paired with RGB observations on Meta-World and RoboTwin">
+      <figcaption>
+        <strong>Optical-flow supervision.</strong> Flow renderings (top) emphasize image-space displacement and
+        suppress static appearance; hue encodes direction, near-static regions stay close to white. No flow
+        estimator is needed at inference.
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- =========================== RESULTS (SIMULATION) =========================== -->
+<section id="results">
+  <div class="wrap">
+    <p class="section__kicker">Results</p>
+    <h2 class="section__title">Stronger manipulation, smaller model</h2>
+
+    <div class="stats">
+      <div class="tile">
+        <div class="tile__value">91.1<span class="unit">%</span></div>
+        <div class="tile__label">Meta-World MT50, tier-averaged success</div>
+        <div class="tile__note">+13.0% rel. vs non-predictive baseline</div>
+      </div>
+      <div class="tile">
+        <div class="tile__value">41.8<span class="unit">%</span></div>
+        <div class="tile__label">RoboTwin average success</div>
+        <div class="tile__note neutral">Clean 67.1% &middot; Random 16.5%</div>
+      </div>
+      <div class="tile">
+        <div class="tile__value">63.3<span class="unit">%</span></div>
+        <div class="tile__label">AgileX real-world, 3-task average</div>
+        <div class="tile__note">&gt; &pi;&#8320; (51.7%) &amp; OpenVLA-OFT (23.3%)</div>
+      </div>
+      <div class="tile">
+        <div class="tile__value">0.87<span class="unit">B</span></div>
+        <div class="tile__label">Parameters</div>
+        <div class="tile__note neutral">2.54 GB GPU mem &middot; 6.16 Hz</div>
+      </div>
+    </div>
+
+    <h3 style="text-align:center; margin:40px 0 4px; font-size:1.12rem;">Meta-World MT50 &amp; RoboTwin success rates (%)</h3>
+    <p class="table-note" style="margin-top:0;">
+      Tier scores and their equal-weight average for Meta-World; Clean / Random / average for RoboTwin.
+      <strong>Best</strong> in bold, <span class="sec">second-best</span> underlined; &ldquo;&ndash;&rdquo; = not reported.
+    </p>
+    <div class="table-wrap">
+      <table class="results compact">
+        <thead>
+          <tr>
+            <th rowspan="2">Method</th>
+            <th class="num" rowspan="2">Params</th>
+            <th class="num" rowspan="2">Pretrain</th>
+            <th class="group" colspan="5">Meta-World MT50</th>
+            <th class="group" colspan="3">RoboTwin</th>
+          </tr>
+          <tr>
+            <th class="num">Easy</th><th class="num">Medium</th><th class="num">Hard</th><th class="num">V. Hard</th><th class="num">Avg</th>
+            <th class="num">Clean</th><th class="num">Random</th><th class="num">Avg</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>DP</td><td class="center">0.1B</td><td class="center">No</td><td class="center">23.1</td><td class="center">10.7</td><td class="center">1.9</td><td class="center">6.1</td><td class="center">10.5</td><td class="center">28.0</td><td class="center">0.6</td><td class="center">14.3</td></tr>
+          <tr><td>ACT</td><td class="center">0.08B</td><td class="center">No</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">29.7</td><td class="center">1.7</td><td class="center">15.7</td></tr>
+          <tr><td>RDT</td><td class="center">1.2B</td><td class="center">Yes</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">34.5</td><td class="center">13.7</td><td class="center">24.1</td></tr>
+          <tr><td>starVLA</td><td class="center">4.68B</td><td class="center">No</td><td class="center">85.7</td><td class="center">60.0</td><td class="center">46.7</td><td class="center">44.0</td><td class="center">59.1</td><td class="center">46.5</td><td class="center">3.2</td><td class="center">24.8</td></tr>
+          <tr><td>DP3</td><td class="center">0.26B</td><td class="center">No</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">55.2</td><td class="center">5.0</td><td class="center">30.1</td></tr>
+          <tr><td>&pi;&#8320;</td><td class="center">3.5B</td><td class="center">Yes</td><td class="center">71.8</td><td class="center">48.2</td><td class="center">41.7</td><td class="center">30.0</td><td class="center">47.9</td><td class="center">46.4</td><td class="center">16.3</td><td class="center">31.4</td></tr>
+          <tr><td>AHA-WAM</td><td class="center">7.35B</td><td class="center">No</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">64.3</td><td class="center">3.2</td><td class="center">33.8</td></tr>
+          <tr><td>GalaxeaVLA</td><td class="center">2.86B</td><td class="center">Yes</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">62.7</td><td class="center">12.7</td><td class="center">37.7</td></tr>
+          <tr><td>Xiaomi Robotics-0</td><td class="center">6.7B</td><td class="center">Yes</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">62.9</td><td class="center"><span class="best">18.2</span></td><td class="center"><span class="sec">40.5</span></td></tr>
+          <tr><td>SmolVLA</td><td class="center">2.25B</td><td class="center">No</td><td class="center">87.1</td><td class="center">51.8</td><td class="center">70.0</td><td class="center">64.0</td><td class="center">68.2</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td></tr>
+          <tr><td>RoboTron-Mani</td><td class="center">4B</td><td class="center">Yes</td><td class="center">85.5</td><td class="center">67.7</td><td class="center">76.7</td><td class="center">81.0</td><td class="center">77.7</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td></tr>
+          <tr><td>Evo-1</td><td class="center">0.77B</td><td class="center">No</td><td class="center">89.2</td><td class="center">76.8</td><td class="center">77.2</td><td class="center">79.2</td><td class="center">80.6</td><td class="center"><span class="sec">65.7</span></td><td class="center">12.5</td><td class="center">39.1</td></tr>
+          <tr><td>Evo-Depth</td><td class="center">0.9B</td><td class="center">No</td><td class="center">83.1</td><td class="center">84.7</td><td class="center"><span class="sec">87.3</span></td><td class="center">82.4</td><td class="center">84.4</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td></tr>
+          <tr><td>LA4VLA</td><td class="center">1.0B</td><td class="center">Yes</td><td class="center">88.9</td><td class="center"><span class="best">94.5</span></td><td class="center">66.7</td><td class="center"><span class="best">100.0</span></td><td class="center">87.5</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td></tr>
+          <tr><td>FabriVLA</td><td class="center">0.88B</td><td class="center">No</td><td class="center"><span class="best">95.0</span></td><td class="center">88.2</td><td class="center">86.7</td><td class="center">90.0</td><td class="center"><span class="sec">90.0</span></td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td></tr>
+          <tr class="is-ours">
+            <td>Evo-World (Ours)</td><td class="center">0.87B</td><td class="center">No</td>
+            <td class="center"><span class="sec">93.2</span></td><td class="center"><span class="sec">89.1</span></td><td class="center"><span class="best">88.3</span></td><td class="center"><span class="sec">94.0</span></td><td class="center"><span class="best">91.1</span></td>
+            <td class="center"><span class="best">67.1</span></td><td class="center"><span class="sec">16.5</span></td><td class="center"><span class="best">41.8</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-note">
+      With ~0.87B parameters and no robot-data pretraining, Evo-World tops the Meta-World tier average and the
+      RoboTwin average &mdash; above larger, robot-pretrained baselines such as &pi;&#8320; (3.5B) and LA4VLA (1.0B).
+    </p>
+  </div>
+</section>
+
+<!-- =========================== REAL-WORLD =========================== -->
+<section id="realworld">
+  <div class="wrap">
+    <p class="section__kicker">Real-world</p>
+    <h2 class="section__title">AgileX dual-arm robot</h2>
+
+    <h3 style="text-align:center; margin:36px 0 4px; font-size:1.12rem;">Real-world success &amp; deployment efficiency</h3>
+    <p class="table-note" style="margin-top:0;">
+      20 trials per task, same NVIDIA H20 GPU in BF16. <strong>Best</strong> bold, <span class="sec">second-best</span> underlined.
+    </p>
+    <div class="table-wrap">
+      <table class="results">
+        <thead>
+          <tr>
+            <th>Metric / Task</th>
+            <th class="num">OpenVLA-OFT</th>
+            <th class="num">&pi;&#8320;</th>
+            <th class="num">Evo-World (Ours)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Params (B) <span class="arrow">&darr;</span></td><td class="center">7.73</td><td class="center"><span class="sec">3.50</span></td><td class="center"><span class="best">0.87</span></td></tr>
+          <tr><td>GPU memory (GB) <span class="arrow">&darr;</span></td><td class="center">15.56</td><td class="center"><span class="sec">6.69</span></td><td class="center"><span class="best">2.54</span></td></tr>
+          <tr><td>Inference freq. (Hz) <span class="arrow">&uarr;</span></td><td class="center">2.41</td><td class="center"><span class="sec">5.42</span></td><td class="center"><span class="best">6.16</span></td></tr>
+          <tr><td>Floral arrangement <span class="arrow">&uarr;</span></td><td class="center">25.0</td><td class="center"><span class="sec">40.0</span></td><td class="center"><span class="best">55.0</span></td></tr>
+          <tr><td>Mug hanging <span class="arrow">&uarr;</span></td><td class="center">25.0</td><td class="center"><span class="sec">55.0</span></td><td class="center"><span class="best">70.0</span></td></tr>
+          <tr><td>Microwave placement <span class="arrow">&uarr;</span></td><td class="center">20.0</td><td class="center"><span class="sec">60.0</span></td><td class="center"><span class="best">65.0</span></td></tr>
+          <tr class="is-ours"><td>Average success rate</td><td class="center">23.3</td><td class="center"><span class="sec">51.7</span></td><td class="center"><span class="best">63.3</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-note">
+      Highest success on all three tasks (63.3% avg), while using 62.0% less GPU memory and running 13.7%
+      faster than &pi;&#8320; under the same deployment settings.
+    </p>
+  </div>
+</section>
+
+<!-- =========================== BIBTEX =========================== -->
+<section id="bibtex">
+  <div class="wrap">
+    <p class="section__kicker">Citation</p>
+    <h2 class="section__title">BibTeX</h2>
+    <div class="bibtex">
+      <button class="copy-btn" id="copyBib">Copy</button>
+      <pre id="bibText">@misc{zhong2026evoworldlightweightvisionlanguageactionmodel,
+  title         = {Evo-World: A Lightweight Vision-Language-Action Model with
+                   Future Motion Prediction via Optical-Flow Supervision},
+  author        = {Zile Zhong and Yuxin Du and Tao Lin and Haoxiao Wang and
+                   Wei Dai and Binhua Zuo and Bo Zhao},
+  year          = {2026},
+  eprint        = {2610.12936},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.RO},
+  url           = {https://arxiv.org/abs/2610.12936}
+}</pre>
+    </div>
+  </div>
+</section>
+
+<!-- =========================== FOOTER =========================== -->
+<footer>
+  <div class="wrap">
+    <p>
+      <a href="https://github.com/MINT-SJTU/Evo-World" target="_blank" rel="noopener">Code</a> &middot;
+      <a href="https://huggingface.co/MINT-SJTU/Evo-World-Metaworld" target="_blank" rel="noopener">Meta-World ckpt</a> &middot;
+      <a href="https://huggingface.co/MINT-SJTU/Evo-World-Robotwin" target="_blank" rel="noopener">RoboTwin ckpt</a>
+    </p>
+    <p>&copy; 2026 MINT, Shanghai Jiao Tong University.</p>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>
